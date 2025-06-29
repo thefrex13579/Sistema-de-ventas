@@ -1,4 +1,5 @@
 from tkinter import Tk, Frame 
+from container import Container
 
 class Manager(Tk):
     def __init__(self, *args, **kwargs):
@@ -14,6 +15,9 @@ class Manager(Tk):
         self.frames = {
             Container: None
         }
+
+        self.load_frame()
+        self.show_frame(Container)
 
     def load_frame(self):
         for FrameClass in self.frames.keys():
