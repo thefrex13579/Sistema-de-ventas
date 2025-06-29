@@ -1,5 +1,6 @@
 from tkinter import *
 import tkinter as tk
+from ventas import Ventas
 
 class Container(tk.Frame):
     def __init__(self, padre, controlador):
@@ -23,3 +24,11 @@ class Container(tk.Frame):
 
     def inventario(self):
         self.show_frame(Inventario)
+
+    def widgets(self):
+        frame1 = tk.Frame(self, bg="#C6D9E3")
+        frame1.pack()
+        frame1.place(x=0, y=0, width=800, height=400)
+
+        btnventas = Button(frame1, bg="green", fg="black", text="Ir a ventas", command= self.ventas)
+        btnventas.place(x=500, y=30, width=240, height=60)
