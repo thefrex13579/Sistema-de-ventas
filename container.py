@@ -2,6 +2,7 @@ from tkinter import *
 import tkinter as tk
 from ventas import Ventas
 from inventario import Inventario
+from PIL import Image, ImageTk
 
 class Container(tk.Frame):
     def __init__(self, padre, controlador):
@@ -32,8 +33,14 @@ class Container(tk.Frame):
         frame1.pack()
         frame1.place(x=0, y=0, width=800, height=400)
 
-        btnventas = tk.Button(frame1, bg="green", fg="white", text="Ir a ventas", command= self.ventas)
+        btnventas = tk.Button(frame1, bg="#f4b400", fg="white", font= "sans 18 bold", text="Ir a ventas", command= self.ventas)
         btnventas.place(x=500, y=30, width=240, height=60)
 
-        btninventario = tk.Button(frame1, bg="blue", fg="white", text="Ir a inventario", command= self.inventario)
+        btninventario = tk.Button(frame1, bg="#c62e26", fg="white", font="sans 18 bold", text="Ir a inventario", command= self.inventario)
         btninventario.place(x=500, y=130, width=240, height=60)
+
+        self.logo_image = Image.open("imagenes/registradora.png")
+        self.logo_image = self.logo_image.resize((280,280))
+        self.logo_image = ImageTk.PhotoImage(self.logo_image)
+        self.logo_label = tk.Label(frame1, image=self.logo_image, bg="#C6D9E3")
+        self.logo_label.place(x=100, y=30)
