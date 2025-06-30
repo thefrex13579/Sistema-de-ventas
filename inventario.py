@@ -14,6 +14,6 @@ class Inventario(ttk.Frame):
         frame1.pack()
         frame1.place(x=0, y=0, width=1100, height=100)
 
-        titulo = tk.Label(self, text="INVENTAROS", bg= "#dddddd")
+        titulo = tk.Label(self, text="INVENTAROS", bg= "#dddddd", font="sans 30 bold", anchor="center")
         titulo.pack()
         titulo.place(x=5, y=0, width=1090, height=90)
