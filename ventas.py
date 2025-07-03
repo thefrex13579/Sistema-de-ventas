@@ -147,4 +147,62 @@ class Ventas(tk.Frame):
                     return
                 precio = float(precio)
                 subtotal = cantidad * precio
+
+                self.tree.insert("", "end", values= (producto, f"{precio:.0f}", cantidad, f"subtotal:.0f"))
+
+                self.entry_nombre.set("")
+                self.entry_valor.config(state="normal")
+                self.entry_valor.delete(0, tk.END)
+                self.entry_valor.config(state="readonly")
+                self.entry_cantidad.delete(0, tk.END)
+
+                self.actualizar_total()
+            except ValueError:
+                messagebox.showerror("Error", "Cantidad o Precio no valido")
+        else:
+            messagebox.showerror("Error", "Debe completar todos los campos")
+
+    def verificar_stock(self, nombre_producto, cantidad):
+        try:
+            conn = sqlite3.connect(self.db_name)
+            c = conn.cursor()
+            c.execute("SELECT stock FROM inventario WHERE nombre = ?", {nombre_producto})
+            stock = c.fetchone()
+            if stock and stock[0] >= cantidad:
+                return True
+            return False
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"Error al verificar el stock: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def obtener_total(self):
+        total = 0.0
+        for child in self.tree.get_children():
+            subtotal = float(self.tree.item(child, "values") [3])
+            total += subtotal
+            return total
+        
+    def abrir_ventana_pago(self):
+        if not self.tree.get_children():
+            messagebox.showerror("Error", "No hay articulos para pagar")
+            return
+        
+        ventana_pago = Toplevel(self)
+        ventana_pago.title("Realizar pago")
+        ventana_pago.geometry("400x400")
+        ventana_pago.config(bg="#C6D9E3")
+        ventana_pago.resizable(False, False)
+
+        label_total = tk.Label(ventana_pago, bg="#C6D9E3", text=f"Total a pagar: Bs {self.obtener_total():.0f}", font="sans 18 bold")
+        label_total.place(x=70, y=20)
+
+        label_cantidad_pagada = tk.Label(ventana_pago, bg="#C6D9E3", text="Cantidad pagada:", font="sans 14 bold" )
+        label_cantidad_pagada.place(x=100, y=90)
+        entry.cantidad_pagada = ttk.Entry(ventana_pago)
+
+
+    def pagar(self, ventana_pago, ):
+
                 
