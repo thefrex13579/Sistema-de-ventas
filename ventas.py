@@ -1,8 +1,11 @@
+import sqlite3
 from tkinter import *
 import tkinter as tk
 from tkinter import ttk, messagebox
 
 class Ventas(tk.Frame):
+    db_name = "database.db"
+
     def __init__(self, parent):
         super().__init__(parent)
         self.widgets()
@@ -32,7 +35,7 @@ class Ventas(tk.Frame):
 
         label_nombre = tk.Label(lblframe, text="Productos:", bg="#C6D9E3", font="sans 12 bold")
         label_nombre.place(x=200, y=12)
-        self.entry_nombre = ttk.Entry(lblframe, font="sans 12 bold")
+        self.entry_nombre = ttk.Combobox(lblframe, font="sans 12 bold", state="readonly")
         self.entry_nombre.place(x=290, y=10, width=180)
 
         label_valor = tk.Label(lblframe, text="Precio:", bg="#C6D9E3", font="sans 12 bold")
@@ -70,8 +73,8 @@ class Ventas(tk.Frame):
 
         self.tree.pack(expand=True, fill=BOTH)
 
-        lblframe1 = LabelFrame(frame2, text="Opciones", bg= "#dddddd", font="sans 12 bold")
-        lblframe1.place(x=10, y=380, width=1060, height=100)
+        lblframe1 = LabelFrame(frame2, text="Opciones", bg= "#C6D9E3", font="sans 12 bold")
+        lblframe1.place(x=10, y=440, width=1060, height=100)
 
         boton_agregar = tk.Button(lblframe1, text="Agregar articulo", bg= "#dddddd", font="sans 12 bold")
         boton_agregar.place(x=50, y=10, width=240, height=50)
@@ -81,3 +84,14 @@ class Ventas(tk.Frame):
 
         boton_ver_facturas = tk.Button(lblframe1, text="Ver facturas", bg= "#dddddd", font="sans 12 bold")
         boton_ver_facturas.place(x=750, y=10, width=240, height=50)
+
+        self.label_suma_total = tk.Label(frame2, text="Total a pagar: Bs 0", bg= "#C6D9E3", font="sans 25 bold")
+        self.label_suma_total.place(x=360, y=400)
+    
+    def cargar_productos(self):
+        try:
+            conn = sqlite3.connect(self.db_name)
+            c = conn.cursor()
+            c.execute("SELECT nombre FROM inventario")
+            productos = c.fetchall
+            self.entry_nombre
