@@ -2,6 +2,13 @@ import sqlite3
 from tkinter import *
 import tkinter as tk
 from tkinter import ttk, messagebox
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.platypus import Table
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+import datetime
+import sys
+import os
 
 class Ventas(tk.Frame):
     db_name = "database.db"
@@ -184,7 +191,7 @@ class Ventas(tk.Frame):
         for child in self.tree.get_children():
             subtotal = float(self.tree.item(child, "values") [3])
             total += subtotal
-            return total
+        return total
         
     def abrir_ventana_pago(self):
         if not self.tree.get_children():
@@ -224,7 +231,13 @@ class Ventas(tk.Frame):
         boton_calcular = tk.Button(ventana_pago, text="Calcular Vuelto", bg="white", font="sans 12 bold", command=calcular_cambio)
         boton_calcular.place(x=100, y=240, width=240, height=40)
 
-        boton_pagar = tk.Button(ventana_pago, text="Pagar", bg="white", font="sans 12 bold", command=lambda: self.pagar[ventana_pago, entry_cantidad_pagada, label_cambio])
+        boton_pagar = tk.Button(
+    ventana_pago,
+    text="Pagar",
+    bg="white",
+    font="sans 12 bold",
+    command=lambda: self.pagar(ventana_pago, entry_cantidad_pagada, label_cambio)
+)
         boton_pagar.place(x=100, y=300, width=240, height=40)
 
 
@@ -241,17 +254,19 @@ class Ventas(tk.Frame):
             conn = sqlite3.connect(self.db_name)
             c = conn.cursor()
             try:
+                productos = []
                 for child in self.tree.get_children():
                     item = self.tree.item(child, "values")
-                    nombre_producto = item[0]
+                    producto = item[0]
+                    precio = item[1]
                     cantidad_vendida = int(item[2])
-                    if not self.verificar_stock(nombre_producto, cantidad_vendida):
-                        messagebox.showerror("Error", f"Stock insuficiente para el producto: {nombre_producto}")
-                        return
+                    subtotal = float(item[3])
+                    productos.append([producto, precio, cantidad_vendida, subtotal])
+    
                     c.execute("INSERT INTO ventas (factura, nombre_articulo, valor_articulo, cantidad, subtotal) VALUES (?,?,?,?,?)",
-                              (self.numero_factura_actual, nombre_producto, float(item[1]), cantidad_vendida, float(item[3])))   
+                              (self.numero_factura_actual, producto, float(precio), cantidad_vendida, subtotal))   
                     
-                    c.execute("UPDATE inventario SET stock = stock - ? WHERE nombre = ?", (cantidad_vendida, nombre_producto))
+                    c.execute("UPDATE inventario SET stock = stock - ? WHERE nombre = ?", (cantidad_vendida, producto))
 
                     conn.commit()
                     messagebox.showinfo("Exito", "Venta registrada exitosamente")
@@ -264,6 +279,10 @@ class Ventas(tk.Frame):
                     self.label_suma_total.config(text="Total a pagar: Bs.0")
                                          
                     ventana_pago.destroy()
+
+                    fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    self.generar_factura_pdf(productos, total, self.numero_factura_actual - 1, fecha)
+
             except sqlite3.Error as e:
                 conn.rollback()
                 messagebox.showerror("Error", f"Error al registrar la venta: {e}")
@@ -273,6 +292,41 @@ class Ventas(tk.Frame):
 
         except ValueError:
             messagebox.showerror("Error", "Cantidad pagada no valida")
+
+    def generar_factura_pdf(self, productos, total, factura_numero, fecha):
+        archivo_pdf = f"facturas/factura_{factura_numero}.pdf"
+        c = canvas.Canvas(archivo_pdf, pagesize=letter)
+        width, height = letter
+
+        styles = getSampleStyleSheet()
+        estilo_tituo = styles["Title"]
+        estilo_normal = styles["Normal"]
+
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(100, height - 50, f"Factura #{factura_numero}: ")
+
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(100, height - 70, f"Fecha: {fecha}: ")
+
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(100, height - 100, "Informacion de la venta")
+
+        data = [["Producto", "Precio", "Cantidad", "Subtotal"]] + productos
+        table = Table(data)
+        table.wrapOn(c, width, height)
+        table.drawOn(c, 100, height - 300)  # Ajusta la posición Y según lo que necesites
+
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(100, height - 250, f"Total a pagar: BS. {total:.0f}: ")
+
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(100, height - 400, "Gracias por su compra.")
+
+        c.save()
+
+        messagebox.showinfo("Factura Generada", f"La factura #{factura_numero} ha sido creada exitosamente")
+
+        os.startfile(os.path.abspath(archivo_pdf))
 
     def obtener_numero_factura_actual(self):
         conn = sqlite3.connect(self.db_name)

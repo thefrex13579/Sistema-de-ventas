@@ -58,7 +58,7 @@ class Inventario(tk.Frame):
         boton_agregar = tk.Button(labelframe, text="Ingresar", font="sans 14 bold", bg='#dddddd', command=self.registrar)
         boton_agregar.place(x=80, y=340, width=240, height=40)
 
-        boton_editar = tk.Button(labelframe, text="Editar", font="sans 14 bold", bg='#dddddd')
+        boton_editar = tk.Button(labelframe, text="Editar", font="sans 14 bold", bg='#dddddd', command=self.editar_producto)
         boton_editar.place(x=80, y=400, width=240, height=40)
 
         #TABLA
@@ -120,8 +120,8 @@ class Inventario(tk.Frame):
         result = self.eje_consulta(consulta)
         for elem in result:
             try:
-                precio_cop = "BS {:,.0f}".format(float(elem[3])) if elem[3] else ""
-                costo_cop = "BS {:,.0f}".format(float(elem[4])) if elem[4] else ""
+                precio_cop = "{:,.0f} BS".format(float(elem[3])) if elem[3] else ""
+                costo_cop = "{:,.0f} BS".format(float(elem[4])) if elem[4] else ""
             except ValueError:
                 precio_cop = elem[3]
                 costo_cop = elem[4]
@@ -219,17 +219,18 @@ class Inventario(tk.Frame):
                 return
             
             try:
-                precio = float(precio.replace("," ""))
-                costo = float(costo.replace("," ""))
+                precio = float(precio.replace(",", ""))
+                costo = float(costo.replace(",", ""))
+                stock = int(stock)
             except ValueError:
                 messagebox.showwarning("Guardar cambios", "Ingrese valores numericos validos para precio y costo.")
+                return
             
-            consulta = "UPDATE inventario SET nombre=?, precio=?, costo=? WHERE id=?"
-            parametros= (nombre, proveedor, precio, costo, stock, item_id)
+            consulta = "UPDATE inventario SET nombre=?, proveedor=?, precio=?, costo=?, stock=? WHERE id=?"
+            parametros = (nombre, proveedor, precio, costo, stock, item_id)
             self.eje_consulta(consulta, parametros)
 
             self.actualizar_inventario()
-
             ventana_editar.destroy()
     
         btn_guardar = tk.Button(ventana_editar, text="Guardar cambios", font="sans 14 bold", command=guardar_cambios)
