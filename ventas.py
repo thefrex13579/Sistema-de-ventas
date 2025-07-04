@@ -8,7 +8,9 @@ class Ventas(tk.Frame):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.numero_factura_actual = self.obtener_numero_factura_actual()
         self.widgets()
+        self.mostrar_numero_factura()
 
     def widgets(self):
 
@@ -80,13 +82,13 @@ class Ventas(tk.Frame):
         lblframe1 = LabelFrame(frame2, text="Opciones", bg= "#C6D9E3", font="sans 12 bold")
         lblframe1.place(x=10, y=440, width=1060, height=100)
 
-        boton_agregar = tk.Button(lblframe1, text="Agregar articulo", bg= "#dddddd", font="sans 12 bold")
+        boton_agregar = tk.Button(lblframe1, text="Agregar articulo", bg= "#dddddd", font="sans 12 bold" command=self.registrar)
         boton_agregar.place(x=50, y=10, width=240, height=50)
 
-        boton_pagar = tk.Button(lblframe1, text="Pagar", bg= "#dddddd", font="sans 12 bold")
+        boton_pagar = tk.Button(lblframe1, text="Pagar", bg= "#dddddd", font="sans 12 bold", command=self.abrir_ventana_pago)
         boton_pagar.place(x=400, y=10, width=240, height=50)
 
-        boton_ver_facturas = tk.Button(lblframe1, text="Ver facturas", bg= "#dddddd", font="sans 12 bold")
+        boton_ver_facturas = tk.Button(lblframe1, text="Ver facturas", bg= "#dddddd", font="sans 12 bold", command=self.abrir_ventana_factura)
         boton_ver_facturas.place(x=750, y=10, width=240, height=50)
 
         self.label_suma_total = tk.Label(frame2, text="Total a pagar: Bs 0", bg= "#C6D9E3", font="sans 25 bold")
@@ -166,7 +168,7 @@ class Ventas(tk.Frame):
         try:
             conn = sqlite3.connect(self.db_name)
             c = conn.cursor()
-            c.execute("SELECT stock FROM inventario WHERE nombre = ?", {nombre_producto})
+            c.execute("SELECT stock FROM inventario WHERE nombre = ?", (nombre_producto))
             stock = c.fetchone()
             if stock and stock[0] >= cantidad:
                 return True
@@ -200,9 +202,93 @@ class Ventas(tk.Frame):
 
         label_cantidad_pagada = tk.Label(ventana_pago, bg="#C6D9E3", text="Cantidad pagada:", font="sans 14 bold" )
         label_cantidad_pagada.place(x=100, y=90)
-        entry.cantidad_pagada = ttk.Entry(ventana_pago)
+        entry_cantidad_pagada = ttk.Entry(ventana_pago, font="sans 14 bold")
+        entry_cantidad_pagada.place(x=100, y=130)
+
+        label_cambio = tk.Label(ventana_pago, bg="#C6D9E3", font="sans 14 bold")
+        label_cambio.place(x=100, y=190)
+
+        def calcular_cambio():
+            try:
+                cantidad_pagada = float(entry_cantidad_pagada.get())
+                total = self.obtener_total()
+
+                cambio = cantidad_pagada - total
+                if (cambio < 0):
+                    messagebox.showerror("Error", "La cantidad pagada es insuficiente")
+                    return
+                label_cambio.config(text= f"Vuelto BS.{cambio:.0f}")
+            except ValueError:
+                messagebox.showerror("Error", "Cantidad pagado no valida")
+
+        boton_calcular = tk.Button(ventana_pago, text="Calcular Vuelto", bg="white", font="sans 12 bold", command=calcular_cambio)
+        boton_calcular.place(x=100, y=240, width=240, height=40)
+
+        boton_pagar = tk.Button(ventana_pago, text="Pagar", bg="white", font="sans 12 bold", command=lambda: self.pagar[ventana_pago, entry_cantidad_pagada, label_cambio])
+        boton_pagar.place(x=100, y=300, width=240, height=40)
 
 
-    def pagar(self, ventana_pago, ):
+    def pagar(self, ventana_pago, entry_cantidad_pagada, label_cambio ):
+        try:
+            cantidad_pagada = float(entry_cantidad_pagada.get())
+            total = self.obtener_total()
+            cambio = cantidad_pagada - total
 
-                
+            if cambio < 0 :
+                messagebox.showerror("Error", "La cantidad pagada es insuficiente")
+                return
+        
+            conn = sqlite3.connect(self.db_name)
+            c = conn.cursor()
+            try:
+                for child in self.tree.get_children():
+                    item = self.tree.item(child, "values")
+                    nombre_producto = item[0]
+                    cantidad_vendida = int(item[2])
+                    if not self.verificar_stock(nombre_producto, cantidad_vendida):
+                        messagebox.showerror("Error", f"Stock insuficiente para el producto: {nombre_producto}")
+                        return
+                    c.execute("INSERT INTO ventas (factura, nombre articulo, valor_articulo, cantidad, subtotal) VALUES (?,?,?,?,?)",
+                              (self.numero_factura_actual, nombre_producto, float(item[1]), cantidad_vendida, float(item[3])))   
+                    
+                    c.execute("UPDATE inventario SET stock - stock - ? WHERE nombre = ?", (cantidad_vendida, nombre_producto))
+
+                    conn.commit()
+                    messagebox.showinfo("Exito", "Venta registrada exitosamente")
+
+                    self.numero_factura_actual += 1
+                    self.mostrar_numero_factura()
+
+                    for child in self.tree.get_children():
+                        self.tree.delete(child)
+                    self.label_suma_total.config(text="Total a pagar: Bs.0")
+                                         
+                    ventana_pago.destroy()
+            except sqlite3.Error as e:
+                conn.rollback()
+                messagebox.showerror("Error", f"Error al registrar la venta: {e}")
+
+            finally:
+                conn.close()
+
+        except ValueError:
+            messagebox.showerror("Error", "Cantidad pagada no valida")
+
+    def obtener_numero_factura_actual(self):
+        conn = sqlite3.connect(self.db_name)
+        c = conn.cursor()
+        try:
+            c.execute("SELECT MAX(factura) FROM ventas")
+            max_factura = c.fetchone()[0]
+            if max_factura:
+                return max_factura +1
+            else:
+                return 1
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"Error al obtener el numero de factura: {e}")
+            return 1
+        finally:
+            conn.close()
+        
+    def mostrar_numero_factura(self):
+        self.numero_factura.set(self.numero_factura_actual)
