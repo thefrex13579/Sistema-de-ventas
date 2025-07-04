@@ -82,7 +82,7 @@ class Ventas(tk.Frame):
         lblframe1 = LabelFrame(frame2, text="Opciones", bg= "#C6D9E3", font="sans 12 bold")
         lblframe1.place(x=10, y=440, width=1060, height=100)
 
-        boton_agregar = tk.Button(lblframe1, text="Agregar articulo", bg= "#dddddd", font="sans 12 bold" command=self.registrar)
+        boton_agregar = tk.Button(lblframe1, text="Agregar articulo", bg= "#dddddd", font="sans 12 bold", command=self.registrar)
         boton_agregar.place(x=50, y=10, width=240, height=50)
 
         boton_pagar = tk.Button(lblframe1, text="Pagar", bg= "#dddddd", font="sans 12 bold", command=self.abrir_ventana_pago)
@@ -150,7 +150,7 @@ class Ventas(tk.Frame):
                 precio = float(precio)
                 subtotal = cantidad * precio
 
-                self.tree.insert("", "end", values= (producto, f"{precio:.0f}", cantidad, f"subtotal:.0f"))
+                self.tree.insert("", "end", values= (producto, f"{precio:.0f}", cantidad, f"{subtotal:.0f¨}"))
 
                 self.entry_nombre.set("")
                 self.entry_valor.config(state="normal")
@@ -251,7 +251,7 @@ class Ventas(tk.Frame):
                     c.execute("INSERT INTO ventas (factura, nombre articulo, valor_articulo, cantidad, subtotal) VALUES (?,?,?,?,?)",
                               (self.numero_factura_actual, nombre_producto, float(item[1]), cantidad_vendida, float(item[3])))   
                     
-                    c.execute("UPDATE inventario SET stock - stock - ? WHERE nombre = ?", (cantidad_vendida, nombre_producto))
+                    c.execute("UPDATE inventario SET stock = stock - ? WHERE nombre = ?", (cantidad_vendida, nombre_producto))
 
                     conn.commit()
                     messagebox.showinfo("Exito", "Venta registrada exitosamente")
@@ -292,3 +292,56 @@ class Ventas(tk.Frame):
         
     def mostrar_numero_factura(self):
         self.numero_factura.set(self.numero_factura_actual)
+
+    def abrir_ventana_factura(self):
+        ventana_facturas = Toplevel(self)
+        ventana_facturas.title("Factura")
+        ventana_facturas.geometry("800x500")
+        ventana_facturas.config(bg="#C6D9E3")
+        ventana_facturas.resizable(False, False)
+       
+        facturas = Label(ventana_facturas, bg="#C6D9E3", text="facturas registradas", font="sans 36 bold")
+        facturas.place(x=150, y=15)
+    
+        treFrame = tk.Frame(ventana_facturas, bg="#C6D9E3")
+        treFrame.place(x=10, y=100, width=780, height=380)
+       
+        scrol_y= ttk.Scrollbar(treFrame, orient=VERTICAL)
+        scrol_y.pack(side=RIGHT, fill=Y)
+
+        scrol_x= ttk.Scrollbar(treFrame, orient=HORIZONTAL)
+        scrol_x.pack(side=BOTTOM, fill=X)
+
+        tree_facturas = ttk.Treeview(treFrame, columns=("ID", "Factura", "Producto", "Precio", "Cantidad", "Subtotal"), show="headings", height=10, yscrollcommand=scrol_y.set, xscrollcommand=scrol_x.set)
+        scrol_y.config(command=tree_facturas.yview)
+        scrol_x.config(command=tree_facturas.xview)
+
+        tree_facturas.heading("#1", text="ID")
+        tree_facturas.heading("#2", text="Factura")
+        tree_facturas.heading("#3", text="Producto")
+        tree_facturas.heading("#4", text="Precio")
+        tree_facturas.heading("#5", text="Cantidad")
+        tree_facturas.heading("#6", text="Subtotal")
+
+        tree_facturas.column("ID", width=70, anchor="center")
+        tree_facturas.column("Factura", width=100, anchor="center")
+        tree_facturas.column("Producto", width=200, anchor="center")
+        tree_facturas.column("Precio", width=130, anchor="center")
+        tree_facturas.column("Cantidad", width=130, anchor="center")
+        tree_facturas.column("Subtotal", width=130, anchor="center")
+
+        tree_facturas.pack(expand=True, fill=BOTH)
+
+        self.cargar_facturas(tree_facturas)
+
+    def cargar_facturas(self, tree):
+        try:
+            conn =sqlite3.connect(self.db_name)
+            c = conn.cursor()
+            c.execute("SELECT * FROM ventas")
+            facturas = c.fetchall()
+            for factura in facturas:
+                tree.insert("", "end", values=factura)
+            conn.close()
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"Error al cargar las facturas: {e}")        
