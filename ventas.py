@@ -150,7 +150,7 @@ class Ventas(tk.Frame):
                 precio = float(precio)
                 subtotal = cantidad * precio
 
-                self.tree.insert("", "end", values= (producto, f"{precio:.0f}", cantidad, f"{subtotal:.0f¨}"))
+                self.tree.insert("", "end", values=(producto, f"{precio:.0f}", cantidad, f"{subtotal:.0f}"))
 
                 self.entry_nombre.set("")
                 self.entry_valor.config(state="normal")
@@ -168,7 +168,7 @@ class Ventas(tk.Frame):
         try:
             conn = sqlite3.connect(self.db_name)
             c = conn.cursor()
-            c.execute("SELECT stock FROM inventario WHERE nombre = ?", (nombre_producto))
+            c.execute("SELECT stock FROM inventario WHERE nombre = ?", (nombre_producto,))
             stock = c.fetchone()
             if stock and stock[0] >= cantidad:
                 return True
@@ -248,7 +248,7 @@ class Ventas(tk.Frame):
                     if not self.verificar_stock(nombre_producto, cantidad_vendida):
                         messagebox.showerror("Error", f"Stock insuficiente para el producto: {nombre_producto}")
                         return
-                    c.execute("INSERT INTO ventas (factura, nombre articulo, valor_articulo, cantidad, subtotal) VALUES (?,?,?,?,?)",
+                    c.execute("INSERT INTO ventas (factura, nombre_articulo, valor_articulo, cantidad, subtotal) VALUES (?,?,?,?,?)",
                               (self.numero_factura_actual, nombre_producto, float(item[1]), cantidad_vendida, float(item[3])))   
                     
                     c.execute("UPDATE inventario SET stock = stock - ? WHERE nombre = ?", (cantidad_vendida, nombre_producto))
@@ -344,4 +344,4 @@ class Ventas(tk.Frame):
                 tree.insert("", "end", values=factura)
             conn.close()
         except sqlite3.Error as e:
-            messagebox.showerror("Error", f"Error al cargar las facturas: {e}")        
+            messagebox.showerror("Error", f"Error al cargar las facturas: {e}")
